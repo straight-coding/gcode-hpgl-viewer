@@ -4,13 +4,8 @@ const AREA_RULER = 2;
 const AREA_DATA = 3;
 
 const HEADLEN = 3;
-
-class Point {
-}
-class Line {
-}
-class Arc {
-}
+const PICK_TOLERANT = 2;
+const BLOCK_SIZE = 50;
 
 class NiceScale {
     constructor(lowerBound, upperBound, _maxTicks) {
@@ -70,7 +65,13 @@ class NiceScale {
 }
 
 class Viewer2D {
+    #indexBlock;
+    #pathIndex;
+
     constructor(opt) {
+        this.#indexBlock = BLOCK_SIZE;
+        this.#pathIndex = {};
+
         this.inited = false;
         this.elemCanvas = opt.canvas;
         this.ctx = this.elemCanvas.getContext("2d", { 
@@ -112,6 +113,7 @@ class Viewer2D {
             x: 1.0,
             y: 1.0
         }
+        this.firstDragPoint = null;
         this.lastDragPoint = null;
         this.showDataPoint = false;
 
@@ -501,8 +503,8 @@ class Viewer2D {
     
                 _this.ctx.beginPath();
     
-                for(let f = 0; f < figure.points.length; f ++) {
-                    let node = figure.points[f];
+                for(let p = 0; p < figure.points.length; p ++) {
+                    let node = figure.points[p];
 
                     if (node[0] < 0) {
                         EOF = true;
@@ -511,7 +513,7 @@ class Viewer2D {
                     let vx = _this.viewPort.x + (node[HEADLEN] - _this.dataWin.minX) * _this.scale.x;
                     let vy = _this.viewPort.y + _this.viewPort.height - (node[HEADLEN+1] - _this.dataWin.minY) * _this.scale.y;
                     let vz = (node[HEADLEN+2]) * _this.scale.x;
-                    if (node[0] == 0) {
+                    if (p == 0) {
                         Viewer2D.lineFrom(_this.ctx, vx, vy);
                     }
                     else if (node[0] <= 1) {
@@ -719,12 +721,16 @@ class Viewer2D {
         if (dim[0] != -1) {
             return;
         }
+
+        console.log('data', data);
+
         _this.dataWin.minX = dim[HEADLEN]-10;
         _this.dataWin.minY = dim[HEADLEN+1]-10;
         _this.dataWin.maxX = dim[HEADLEN+3]+10;
         _this.dataWin.maxY = dim[HEADLEN+4]+10;
 
         _this.data = data;
+        _this.updateIndex();
 
         _this.updateScale();
         _this.redraw();
@@ -758,6 +764,13 @@ class Viewer2D {
                 x: e.clientX,
                 y: e.clientY,
             };
+            _this.firstDragPoint = {
+                x: e.clientX,
+                y: e.clientY,
+            };
+
+            _this.unselectAll();
+
             _this.redraw(e);
         }
     }
@@ -790,10 +803,24 @@ class Viewer2D {
             return;
         e.preventDefault();
 
+        let moved = null;
+        if (_this.firstDragPoint) {
+            moved = {
+                x: e.clientX - _this.firstDragPoint.x,
+                y: e.clientY - _this.firstDragPoint.y
+            }
+        }
+
+        _this.firstDragPoint = null;
         _this.lastDragPoint = null;
         _this.elemCanvas.style.cursor = 'default';
 
-        _this.redraw(e);
+        if (moved && ((moved.x > 2) || (moved.y > 2))) {
+            _this.redraw(e);
+        }
+        else {
+            _this.markSelected(e);
+        }
     }
     onMouseWheel(e) {
         const _this = this;
@@ -827,8 +854,55 @@ class Viewer2D {
 
         //console.log('onMouseWheel', delta);
     }
+    markSelected(e) {
+        const _this = this;
+        e.preventDefault();
+
+        var evt = window.event || e; // old IE support
+
+        _this.unselectAll();
+        if (typeof (_this.unSelected) == 'function') {
+            _this.unSelected();
+        }
+
+        let rcCan = _this.elemCanvas.getBoundingClientRect();
+        let vOffX = (evt.clientX - rcCan.left - _this.viewPort.x);
+        let vOffY = _this.viewPort.height - (evt.clientY - rcCan.top  - _this.viewPort.y);
+        let pickup = {
+            x: _this.dataWin.minX + (vOffX / _this.scale.x),
+            y: _this.dataWin.minY + (vOffY / _this.scale.y)
+        };
+
+        let col = Math.floor(pickup.x/_this.#indexBlock);
+        let row = Math.floor(pickup.y/_this.#indexBlock);
+        console.log('clicking', pickup.x, pickup.y, col, row);
+
+        if ((row in _this.#pathIndex) && (col in _this.#pathIndex[row])) {
+            console.log('found', pickup.x, pickup.y, col, row);
+
+            let figList = _this.#pathIndex[row][col];
+            for(let f = 0; f < figList.length; f ++) {
+                let idx = figList[f];
+                let figure = _this.data[idx];
+                if (_this.hitTest(pickup.x, pickup.y, figure.points)) {
+                    console.log('selected', figure);
+                    figure.selected = true;
+                    if (typeof (_this.onSelected) == 'function') {
+                        if (idx < _this.data.length-1) {
+                            let stopFig = _this.data[idx+1]; 
+                            _this.onSelected(figure.points[0][2], stopFig.points[0][2]);
+                        }
+                        else {
+                            _this.onSelected(figure.points[0][2], null);
+                        }
+                    }
+                }
+            }
+        }
+        this.redraw(e);
+    }
     //Compute the dot product AB . BC
-    dotProduct(pointA, pointB, pointC) {
+    static dotProduct(pointA, pointB, pointC) {
         let AB = [0,0];
         let BC = [0,0];
 
@@ -841,7 +915,7 @@ class Viewer2D {
         return dot;
     }
     //Compute the cross product AB x AC
-    crossProduct(pointA, pointB, pointC) {
+    static crossProduct(pointA, pointB, pointC) {
         let AB = [0,0];
         let AC = [0,0];
 
@@ -854,26 +928,127 @@ class Viewer2D {
         return cross;
     }
     //Compute the distance from A to B
-    distance(pointA, pointB) {
+    static distance(pointA, pointB) {
         let d1 = pointA[0] - pointB[0];
         let d2 = pointA[1] - pointB[1];
 
-        return Math.Sqrt(d1 * d1 + d2 * d2);
+        return Math.sqrt(d1 * d1 + d2 * d2);
+    }
+    static distance2(pointA, pointB) {
+        let d1 = pointA[0] - pointB[0];
+        let d2 = pointA[1] - pointB[1];
+        return (d1 * d1 + d2 * d2);
     }
     //Compute the distance from AB to C
     //if isSegment is true, AB is a segment, not a line.
-    lineToPointDistance2D(pointA, pointB, pointC, isSegment) {
-        let dist = crossProduct(pointA, pointB, pointC) / distance(pointA, pointB);
+    static lineToPointDistance2D(pointA, pointB, pointC, isSegment) {
+        let dist = Viewer2D.crossProduct(pointA, pointB, pointC) / Viewer2D.distance(pointA, pointB);
         if (isSegment) {
-            let dot1 = dotProduct(pointA, pointB, pointC);
+            let dot1 = Viewer2D.dotProduct(pointA, pointB, pointC);
             if (dot1 > 0) {
-                return distance(pointB, pointC);
+                return Viewer2D.distance(pointB, pointC);
             }
-            let dot2 = dotProduct(pointB, pointA, pointC);
+            let dot2 = Viewer2D.dotProduct(pointB, pointA, pointC);
             if (dot2 > 0) {
-                return distance(pointA, pointC);
+                return Viewer2D.distance(pointA, pointC);
             }
         }
-        return Math.Abs(dist);
-    }     
+        return Math.abs(dist);
+    }
+    unselectAll() {
+        const _this = this;
+        for(let f = 1; f < _this.data.length; f ++) {
+            let figure = _this.data[f];
+            figure.selected = false;
+        }
+    }
+    updateIndex() {
+        const _this = this;
+
+        _this.#pathIndex = {};
+
+        if (!_this.data || (_this.data.length == 0)) {
+            return;
+        }
+        let dim = _this.data[0].points[0];
+        if (dim[0] != -1) {
+            return;
+        }
+
+        for(let f = 1; f < _this.data.length; f ++) {
+            let figure = _this.data[f];
+
+            let lastX;
+            let lastY;
+            for(let p = 0; p < figure.points.length; p ++) {
+                let pt = figure.points[p];
+                if ((pt[0] < 0) || (pt[0] > 3)) {
+                    continue;
+                }
+                let x = pt[HEADLEN];
+                let y = pt[HEADLEN+1];
+                if ((p > 0) && (pt[0] <= 1)) {
+                    _this.indexSegment(f, [lastX,lastY], [x,y], _this.#indexBlock*_this.#indexBlock/4);
+                }
+                _this.setPointIndex(f, x, y);
+
+                lastX = x;
+                lastY = y;
+            }
+        }
+        console.log('index', _this.#pathIndex);
+    }
+    indexSegment(f, A, B, step2) {
+        if (Viewer2D.distance2(A,B) < step2) {
+            return;
+        }
+
+        let x = (A[0]+B[0])/2;
+        let y = (A[1]+B[1])/2;
+        this.setPointIndex(f, x, y);
+
+        this.indexSegment(f, A, [x,y], step2);
+        this.indexSegment(f, [x,y], B, step2);
+    }
+    setPointIndex(f, x, y) {
+        const _this = this;
+        let col = Math.floor(x/_this.#indexBlock);
+        let row = Math.floor(y/_this.#indexBlock);
+
+        if (!(row in _this.#pathIndex)) {
+            _this.#pathIndex[row] = {};
+        }
+        if (!(col in _this.#pathIndex[row])) {
+            _this.#pathIndex[row][col] = [];
+        }
+        let figList = _this.#pathIndex[row][col];
+        if (figList.indexOf(f) < 0) {
+            figList.push(f);
+        }
+    }
+    hitTest(x, y, points) {
+        const _this = this;
+        if (points.length < 2) {
+            return false;
+        }
+
+        let tolerant = PICK_TOLERANT / _this.scale.x;
+        let lastX = null;
+        let lastY = null;
+        for(let i = 0; i < points.length; i ++) {
+            let pt = points[i];
+            if ((pt[0] < 0) || (pt[0] > 3)) {
+                continue;
+            }
+            if ((lastX != null) && (lastY != null)) {
+                let dist = Viewer2D.lineToPointDistance2D([lastX, lastY], [pt[HEADLEN], pt[HEADLEN+1]], [x,y], true);
+                if (dist < tolerant) {
+                    return true;
+                }
+            }
+            lastX = pt[HEADLEN];
+            lastY = pt[HEADLEN+1];
+        }
+        return false;
+    }
 }

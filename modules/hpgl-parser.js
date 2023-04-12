@@ -2,6 +2,10 @@
 class HpglParser {
     #scale;
     #obsolute;
+
+    #lastType;
+    #curFig;
+    #figList;
     constructor(opt) {
         this.inited = false;
         Object.assign(this, opt);
@@ -19,6 +23,7 @@ class HpglParser {
         return ((obj != undefined) && (obj != null));
     }
     parse(data) {
+        this.#lastType = -1;
         this.lastPos = {x:null,y:null,z:null,i:null,j:null,k:null};
         this.min = {
             x: Number.MAX_VALUE,
@@ -29,7 +34,8 @@ class HpglParser {
             y: Number.MIN_VALUE
         };
 
-        let figures = [];
+        this.#curFig = null;
+        this.#figList = [];
 
         if (!this.#obsolute) {
             this.lastPos = {x:0,y:0,z:0,i:0,j:0,k:0};
@@ -53,10 +59,7 @@ class HpglParser {
             }
             if ((data[c] >= 'A') && (data[c] <= 'Z')) {
                 if ((cmd.length > 0) && (value.length > 0)) {
-                    let figure = this.processCmd(cmdPos, cmd, value);
-                    if (figure) {
-                        figures.push(figure);
-                    }
+                    this.processCmd(cmdPos, cmd, value);
                     cmd = '';
                     value = '';
                 }
@@ -67,10 +70,7 @@ class HpglParser {
             }
             else if (data[c] == ';'){
                 if ((cmd.length > 0) && (value.length > 0)) {
-                    let figure = this.processCmd(cmdPos, cmd, value);
-                    if (figure) {
-                        figures.push(figure);
-                    }
+                    this.processCmd(cmdPos, cmd, value);
                 }
                 cmd = '';
                 value = '';
@@ -92,20 +92,21 @@ class HpglParser {
             }
         }
         if ((cmd.length > 0) && (value.length > 0)) {
-            let figure = this.processCmd(cmdPos, cmd, value);
-            if (figure) {
-                figures.push(figure);
-            }
-
+            this.processCmd(cmdPos, cmd, value);
             cmd = '';
             value = '';
         }
 
+        if (this.#curFig != null) {
+            this.#figList.push(this.#curFig);
+        }
+        this.#curFig = null;
+
         let figure = new Figure();
         figure.append(-1, -1, -1, this.min.x, this.min.y, 0, this.max.x, this.max.y, 0);
-        figures.unshift(figure);
+        this.#figList.unshift(figure);
 
-        return figures;
+        return this.#figList;
     }
     getPoints(value) {
         //this.lastPos
@@ -158,24 +159,38 @@ class HpglParser {
             gType = 1;
         }
 
-        let figure = null;
         if (gType != -1) {
             let points = this.getPoints(value);
             if (points.length >= 2) {
-                figure = new Figure();
+                if (gType == 0) {
+                    if (this.#curFig != null) {
+                        this.#figList.push(this.#curFig);
+                    }
+                    this.#curFig = null;
+                }
+                else {
+                    if (this.#lastType == 0) {
+                        if (this.#curFig == null) {
+                            this.#curFig = new Figure();
+                        }
+                        this.#curFig.append(0, -1, cmdPos, this.lastPos.x, this.lastPos.y, 0);
+                    }
+                }
+    
                 for(let i = 0; i < points.length; i += 2) {
                     if (gType != 0) {
-                        if (i == 0) {
-                            figure.append(0, -1, cmdPos, this.lastPos.x, this.lastPos.y, 0);
+                        if (this.#curFig == null) {
+                            this.#curFig = new Figure();
                         }
-                        figure.append(gType, -1, cmdPos, points[i], points[i+1], 0);
+                        this.#curFig.append(gType, -1, cmdPos, points[i], points[i+1], 0);
                     }
                     this.lastPos.x = points[i];
                     this.lastPos.y = points[i+1];
                     this.lastPos.z = 0;
                 }
+
+                this.#lastType = gType;
             }
         }
-        return figure;
     }
 }

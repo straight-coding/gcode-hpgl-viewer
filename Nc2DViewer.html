@@ -107,7 +107,8 @@
         </div>
         <div id="container" class="base row between-content">
             <canvas id="canvas" width="1024px" height="600px" style="border: solid 0px lightgray;"></canvas>
-            <div class="base" style="width: 350px;margin-left:10px;height:100%;border: solid 1px #D6D6D6;flex-shrink: 0;"></div>
+            <textarea id="cmd" class="base" style="width: 350px;margin-left:10px;height:100%;border: solid 1px #D6D6D6;flex-shrink: 0;">
+            </textarea>
         </div>
         <div class="base row center-item center-content" style="height: 30px;">
             <span>straight-coding</span>
@@ -118,16 +119,42 @@
         "use strict";
 
         var viewer = null;
+        var pathRawData = null;
         {
             viewer = new Viewer2D({
                 canvas: document.getElementById("canvas"),
                 margin: {left:10,top:10,right:10,bottom:10},
                 toolbar: {left:30,top:30,right:30,bottom:30},
-                ruler: {left:30,top:30,right:30,bottom:30,majorSize:8,minorSize:4}
+                ruler: {left:30,top:30,right:30,bottom:30,majorSize:8,minorSize:4},
+                onSelected: function(start,end) {
+                    console.log(start,end);
+                    let elemCommand = document.getElementById('cmd');
+
+                    let dataAhead = pathRawData.slice(0, start);
+                    elemCommand.value = dataAhead;
+                    let scrollHeight = elemCommand.scrollHeight;
+
+                    elemCommand.value = pathRawData.slice();
+                    elemCommand.selectionStart = start;
+                    if (end == null) {
+                        elemCommand.selectionEnd = elemCommand.value.length;
+                    }
+                    else {
+                        elemCommand.selectionEnd = end;
+                    }
+                    elemCommand.focus();
+                    elemCommand.scrollTop = scrollHeight-40;
+                },
+                unSelected: function() {
+                    let elemCommand = document.getElementById('cmd');
+                    elemCommand.blur();
+                }
             });
 
             document.getElementById('ncFile').addEventListener('change', () => {
                 let files = document.getElementById('ncFile').files;
+                let elemCommand = document.getElementById('cmd');
+
                 if (files.length == 0) 
                     return;
 
@@ -136,6 +163,11 @@
                 let reader = new FileReader();
                 reader.onload = (e) => {
                     const fileContent = e.target.result;
+                    pathRawData = fileContent.slice();
+                    pathRawData = pathRawData.replaceAll('\r', ' ');
+
+                    elemCommand.value = fileContent;
+
                     let detector = new FormatParser();
                     let format = detector.detect(fileContent);
                     console.log('format:', format);

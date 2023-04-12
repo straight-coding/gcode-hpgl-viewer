@@ -1,7 +1,7 @@
 class Figure {
     constructor() {
         this.inited = false;
-        this.selected = true;
+        this.selected = false;
         this.points = [];
     }
     append() {

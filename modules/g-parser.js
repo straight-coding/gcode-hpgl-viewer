@@ -1,20 +1,11 @@
 
 class GParser {
-    #lastPoint;
     #scale;
     #obsolute;
-    #lastCmd;
-    #indexBlock;
-    #pathIndex;
     constructor(lines) {
-        this.#lastCmd = -1;
-        this.#lastPoint = {x:null,y:null,z:null};
         this.#scale = {x:1,y:1,z:1};
         this.#obsolute = true;
 
-        this.#indexBlock = 50;
-        this.#pathIndex = {};
-        
         this.inited = false;
         //Object.assign(this, opt);
 
@@ -85,6 +76,16 @@ class GParser {
             let blocks = {};
 
             let plane = null;
+            let gCode = null;
+            let nextPoint = {
+                x: this.lastPos.x,
+                y: this.lastPos.y,
+                z: this.lastPos.z,
+                i: this.lastPos.i,
+                j: this.lastPos.j,
+                k: this.lastPos.k
+            };
+
             for(let c = 0; c < line.length; c ++) {
                 if (line[c] == '(') { //comment begins
                     nNesting ++;
@@ -135,11 +136,8 @@ class GParser {
                 blocks[cmd] = value;
             }
             if ('G' in blocks) {
-                let gCode = parseInt(blocks['G'], 10);
-                if (gCode <= 3) {
-                    this.lastG = gCode;
-                }
-                else if (gCode == 90) {
+                gCode = parseInt(blocks['G'], 10);
+                if (gCode == 90) {
                     this.#obsolute = true;
                 }
                 else if (gCode == 91) {
@@ -170,50 +168,52 @@ class GParser {
             }
             
             let moving = false;
-            if ('X' in blocks) {
-                moving = true;
-                if (this.#obsolute) {
-                    this.lastPos.x = this.#scale.x*parseFloat(blocks['X'], 10);
+            if (gCode <= 3) {
+                if ('X' in blocks) {
+                    moving = true;
+                    if (this.#obsolute) {
+                        nextPoint.x = this.#scale.x*parseFloat(blocks['X'], 10);
+                    }
+                    else {
+                        nextPoint.x += this.#scale.x*parseFloat(blocks['X'], 10);
+                    }
+                    if (this.min.x > nextPoint.x)    this.min.x = nextPoint.x;
+                    if (this.max.x < nextPoint.x)    this.max.x = nextPoint.x;
                 }
-                else {
-                    this.lastPos.x += this.#scale.x*parseFloat(blocks['X'], 10);
+                if ('Y' in blocks) {
+                    moving = true;
+                    if (this.#obsolute) {
+                        nextPoint.y = this.#scale.y*parseFloat(blocks['Y'], 10);
+                    }
+                    else {
+                        nextPoint.y += this.#scale.y*parseFloat(blocks['Y'], 10);
+                    }
+                    if (this.min.y > nextPoint.y)    this.min.y = nextPoint.y;
+                    if (this.max.y < nextPoint.y)    this.max.y = nextPoint.y;
                 }
-                if (this.min.x > this.lastPos.x)    this.min.x = this.lastPos.x;
-                if (this.max.x < this.lastPos.x)    this.max.x = this.lastPos.x;
-            }
-            if ('Y' in blocks) {
-                moving = true;
-                if (this.#obsolute) {
-                    this.lastPos.y = this.#scale.y*parseFloat(blocks['Y'], 10);
+                if ('Z' in blocks) {
+                    moving = true;
+                    if (this.#obsolute) {
+                        nextPoint.z = this.#scale.z*parseFloat(blocks['Z'], 10);
+                    }
+                    else {
+                        nextPoint.z += this.#scale.z*parseFloat(blocks['Z'], 10);
+                    }
+                    if (this.min.z > nextPoint.z)    this.min.z = nextPoint.z;
+                    if (this.max.z < nextPoint.z)    this.max.z = nextPoint.z;
                 }
-                else {
-                    this.lastPos.y += this.#scale.y*parseFloat(blocks['Y'], 10);
+                if ('I' in blocks) {
+                    moving = true;
+                    nextPoint.i = this.#scale.x*parseFloat(blocks['I'], 10);
                 }
-                if (this.min.y > this.lastPos.y)    this.min.y = this.lastPos.y;
-                if (this.max.y < this.lastPos.y)    this.max.y = this.lastPos.y;
-            }
-            if ('Z' in blocks) {
-                moving = true;
-                if (this.#obsolute) {
-                    this.lastPos.z = this.#scale.z*parseFloat(blocks['Z'], 10);
+                if ('J' in blocks) {
+                    moving = true;
+                    nextPoint.j = this.#scale.y*parseFloat(blocks['J'], 10);
                 }
-                else {
-                    this.lastPos.z += this.#scale.z*parseFloat(blocks['Z'], 10);
+                if ('K' in blocks) {
+                    moving = true;
+                    nextPoint.k = this.#scale.z*parseFloat(blocks['K'], 10);
                 }
-                if (this.min.z > this.lastPos.z)    this.min.z = this.lastPos.z;
-                if (this.max.z < this.lastPos.z)    this.max.z = this.lastPos.z;
-            }
-            if ('I' in blocks) {
-                moving = true;
-                this.lastPos.i = this.#scale.x*parseFloat(blocks['I'], 10);
-            }
-            if ('J' in blocks) {
-                moving = true;
-                this.lastPos.j = this.#scale.y*parseFloat(blocks['J'], 10);
-            }
-            if ('K' in blocks) {
-                moving = true;
-                this.lastPos.k = this.#scale.z*parseFloat(blocks['K'], 10);
             }
 
             if (plane) {
@@ -226,25 +226,46 @@ class GParser {
                 figure = null;
             }
 
-            if (this.valid(this.lastG) && moving) {
-                if (this.lastG <= 1) {
+            if (this.valid(gCode) && (gCode <= 3) && moving) {
+                if (gCode == 0) {
+                    if (figure != null) {
+                        figures.push(figure);
+                        figure = null;
+                    }
+                }
+                else {
                     if (this.lastG == 0) {
-                        if (figure != null) {
-                            figures.push(figure);
-                            figure = null;
+                        if (figure == null) {
+                            figure = new Figure();
+                        }
+                        figure.append(0, (n+1), linePos, this.lastPos.x, this.lastPos.y, this.lastPos.z);
+                    }
+
+                    if (gCode == 1) {
+                        if ((nextPoint.x != null) && (nextPoint.y != null) && (nextPoint.z != null)) {
+                            if (figure == null) {
+                                figure = new Figure();
+                            }
+                            figure.append(gCode, (n+1), linePos, nextPoint.x, nextPoint.y, nextPoint.z);
                         }
                     }
-                    if (figure == null) {
-                        figure = new Figure();
+                    else if (gCode <= 3) {
+                        if (figure == null) {
+                            figure = new Figure();
+                        }
+                        figure.append(gCode, (n+1), linePos, nextPoint.x, nextPoint.y, nextPoint.z, nextPoint.i, nextPoint.j, nextPoint.k);
                     }
-                    figure.append(this.lastG, (n+1), linePos, this.lastPos.x, this.lastPos.y, this.lastPos.z);
                 }
-                else if (this.lastG <= 3) {
-                    if (figure == null) {
-                        figure = new Figure();
-                    }
-                    figure.append(this.lastG, (n+1), linePos, this.lastPos.x, this.lastPos.y, this.lastPos.z, this.lastPos.i, this.lastPos.j, this.lastPos.k);
-                }
+            }
+            if ((gCode != null) && (gCode <= 3)) {
+                this.lastG = gCode;
+
+                this.lastPos.x = nextPoint.x;
+                this.lastPos.y = nextPoint.y;
+                this.lastPos.z = nextPoint.z;
+                this.lastPos.i = nextPoint.i;
+                this.lastPos.j = nextPoint.j;
+                this.lastPos.k = nextPoint.k;
             }
 
             line = '';
@@ -264,12 +285,5 @@ class GParser {
         figures.unshift(figure);
 
         return figures;
-    }
-    getCode(x, y) {
-        let col = Math.floor(x/this.#indexBlock);
-        let row = Math.floor(y/this.#indexBlock);
-
-        if ((row in this.#pathIndex) && (col in this.#pathIndex[row])) {
-        }
     }
 }
