@@ -96,16 +96,17 @@
         }
         #cmd
         {
-            display: block;
-            
+            box-sizing: border-box; 
+
             width: 350px;
             height: 100%;
 
-            line-height: 24px;
-            min-height: 22px;
-
-            margin-left: 10px;
             flex-shrink: 0;
+            margin-left: 10px;
+
+            resize: none;
+
+            line-height: 24px;
 
             border: solid 1px #D6D6D6;
 
@@ -175,6 +176,12 @@
                     let elemCommand = document.getElementById('cmd');
                     elemCommand.blur();
                 }
+            });
+
+            document.getElementById('cmd').addEventListener('click', (e) => {
+                let elemCommand = document.getElementById('cmd');
+                console.log(elemCommand.selectionStart);
+                viewer.selectByCommand(elemCommand.selectionStart);
             });
 
             document.getElementById('ncFile').addEventListener('change', () => {

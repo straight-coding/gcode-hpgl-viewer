@@ -1051,4 +1051,18 @@ class Viewer2D {
         }
         return false;
     }
+    selectByCommand(charPos) {
+        const _this = this;
+
+        _this.unselectAll();
+
+        for(let i = _this.data.length-1; i >= 1; i --) {
+            let fig = _this.data[i]; 
+            if (charPos >= fig.points[0][2]) {
+                fig.selected = true;
+                break;
+            }
+        }
+        _this.redraw();
+    }
 }
