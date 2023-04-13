@@ -153,8 +153,8 @@
                 margin: {left:10,top:10,right:10,bottom:10},
                 toolbar: {left:30,top:30,right:30,bottom:30},
                 ruler: {left:30,top:30,right:30,bottom:30,majorSize:8,minorSize:4},
-                onSelected: function(start,end) {
-                    console.log(start,end);
+                onSelected: function(start,end,autoscroll) {
+                    //console.log(start,end);
                     let elemCommand = document.getElementById('cmd');
 
                     let dataAhead = pathRawData.slice(0, start);
@@ -170,7 +170,9 @@
                         elemCommand.selectionEnd = end;
                     }
                     elemCommand.focus();
-                    elemCommand.scrollTop = scrollHeight-40;
+                    if (autoscroll) {
+                        elemCommand.scrollTop = scrollHeight-40;
+                    }
                 },
                 unSelected: function() {
                     let elemCommand = document.getElementById('cmd');

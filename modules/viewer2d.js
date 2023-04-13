@@ -890,10 +890,10 @@ class Viewer2D {
                     if (typeof (_this.onSelected) == 'function') {
                         if (idx < _this.data.length-1) {
                             let stopFig = _this.data[idx+1]; 
-                            _this.onSelected(figure.points[0][2], stopFig.points[0][2]);
+                            _this.onSelected(figure.points[0][2], stopFig.points[0][2], true);
                         }
                         else {
-                            _this.onSelected(figure.points[0][2], null);
+                            _this.onSelected(figure.points[0][2], null, true);
                         }
                     }
                 }
@@ -1056,12 +1056,17 @@ class Viewer2D {
 
         _this.unselectAll();
 
+        let endPos = null;
         for(let i = _this.data.length-1; i >= 1; i --) {
             let fig = _this.data[i]; 
             if (charPos >= fig.points[0][2]) {
                 fig.selected = true;
+                if (typeof (_this.onSelected) == 'function') {
+                    _this.onSelected(fig.points[0][2], endPos, false);
+                }
                 break;
             }
+            endPos = fig.points[0][2];
         }
         _this.redraw();
     }
