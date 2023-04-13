@@ -5,7 +5,7 @@ This tool is written in pure HTML/CSS/JS, which can be used to show 2D CNC/CAD f
 Clone this project to your local storage then open index.html.
 
 
-# Features:
+# Features
 
 Panning: Hold down the left mouse button to move.
 
