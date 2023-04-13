@@ -4,6 +4,7 @@ class HpglParser {
     #obsolute;
 
     #lastType;
+    #lastG0Pos;
     #curFig;
     #figList;
     constructor(opt) {
@@ -23,6 +24,7 @@ class HpglParser {
         return ((obj != undefined) && (obj != null));
     }
     parse(data) {
+        this.#lastG0Pos = -1;
         this.#lastType = -1;
         this.lastPos = {x:null,y:null,z:null,i:null,j:null,k:null};
         this.min = {
@@ -163,6 +165,7 @@ class HpglParser {
             let points = this.getPoints(value);
             if (points.length >= 2) {
                 if (gType == 0) {
+                    this.#lastG0Pos = cmdPos;
                     if (this.#curFig != null) {
                         this.#figList.push(this.#curFig);
                     }
@@ -173,7 +176,7 @@ class HpglParser {
                         if (this.#curFig == null) {
                             this.#curFig = new Figure();
                         }
-                        this.#curFig.append(0, -1, cmdPos, this.lastPos.x, this.lastPos.y, 0);
+                        this.#curFig.append(0, -1, this.#lastG0Pos, this.lastPos.x, this.lastPos.y, 0);
                     }
                 }
     
@@ -182,7 +185,7 @@ class HpglParser {
                         if (this.#curFig == null) {
                             this.#curFig = new Figure();
                         }
-                        this.#curFig.append(gType, -1, cmdPos, points[i], points[i+1], 0);
+                        this.#curFig.append(gType, -1, this.#lastG0Pos, points[i], points[i+1], 0);
                     }
                     this.lastPos.x = points[i];
                     this.lastPos.y = points[i+1];

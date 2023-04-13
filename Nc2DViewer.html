@@ -94,6 +94,28 @@
         overflow: hidden;
         text-overflow: ellipsis;        
         }
+        #cmd
+        {
+            display: block;
+            
+            width: 350px;
+            height: 100%;
+
+            line-height: 24px;
+            min-height: 22px;
+
+            margin-left: 10px;
+            flex-shrink: 0;
+
+            border: solid 1px #D6D6D6;
+
+            word-break: break-all;
+            white-space: normal;
+            word-wrap: break-word;
+
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
     </style>
 </head>
 <body style="height:100%;padding:0;margin:0;font-family: 'Courier New', Courier, monospace;">
@@ -105,9 +127,13 @@
             <label for="ncFile">Select a NC file:</label>
             <input type="file" id="ncFile" name="ncFile" accept=".nc,.txt,.cnc,.plt"><br><br>
         </div>
+        <div class="base row center-item center-content" style="height: 40px;">
+            <label><span style="font-weight:700;">Panning</span>: Hold down the left mouse button and move.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</label>
+            <label><span style="font-weight:700;">Zooming</span>: Roll the mouse wheel.</label>
+        </div>
         <div id="container" class="base row between-content">
             <canvas id="canvas" width="1024px" height="600px" style="border: solid 0px lightgray;"></canvas>
-            <textarea id="cmd" class="base" style="width: 350px;margin-left:10px;height:100%;border: solid 1px #D6D6D6;flex-shrink: 0;">
+            <textarea id="cmd" rows="50" cols="10" wrap="hard">
             </textarea>
         </div>
         <div class="base row center-item center-content" style="height: 30px;">

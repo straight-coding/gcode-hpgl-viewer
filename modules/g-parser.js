@@ -46,6 +46,7 @@ class GParser {
         let line = '';
         let n = 0;
         let linePos = 0;
+        let lastG0Pos = 0;
         let CRs = [];
         for(let i = 0; i < data.length; i ++) {
             let idxCR = -1;
@@ -228,6 +229,7 @@ class GParser {
 
             if (this.valid(gCode) && (gCode <= 3) && moving) {
                 if (gCode == 0) {
+                    lastG0Pos = linePos;
                     if (figure != null) {
                         figures.push(figure);
                         figure = null;
@@ -238,7 +240,7 @@ class GParser {
                         if (figure == null) {
                             figure = new Figure();
                         }
-                        figure.append(0, (n+1), linePos, this.lastPos.x, this.lastPos.y, this.lastPos.z);
+                        figure.append(0, (n+1), lastG0Pos, this.lastPos.x, this.lastPos.y, this.lastPos.z);
                     }
 
                     if (gCode == 1) {
@@ -246,14 +248,14 @@ class GParser {
                             if (figure == null) {
                                 figure = new Figure();
                             }
-                            figure.append(gCode, (n+1), linePos, nextPoint.x, nextPoint.y, nextPoint.z);
+                            figure.append(gCode, (n+1), lastG0Pos, nextPoint.x, nextPoint.y, nextPoint.z);
                         }
                     }
                     else if (gCode <= 3) {
                         if (figure == null) {
                             figure = new Figure();
                         }
-                        figure.append(gCode, (n+1), linePos, nextPoint.x, nextPoint.y, nextPoint.z, nextPoint.i, nextPoint.j, nextPoint.k);
+                        figure.append(gCode, (n+1), lastG0Pos, nextPoint.x, nextPoint.y, nextPoint.z, nextPoint.i, nextPoint.j, nextPoint.k);
                     }
                 }
             }
