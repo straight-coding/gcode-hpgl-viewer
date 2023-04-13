@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html style="width:100%;height:100%;">
+<head>
+    <title>NC Path 2D Viewer</title>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+
+    <script src="./modules/viewer2d.js"></script>
+    <script src="./modules/g-parser.js"></script>
+    <script src="./modules/hpgl-parser.js"></script>
+    <script src="./modules/dpml-parser.js"></script>
+    <script src="./modules/format-check.js"></script>
+    <script src="./modules/figure.js"></script>
+
+    <style>
+        .base
+        { 
+        box-sizing: border-box; 
+        position: relative; 
+
+        display: -webkit-flex; 
+        display: -ms-flex; 
+        display: flex; 
+        }
+        .no-shrink
+        {
+        -webkit-flex-shrink: 0;
+        -ms-flex-shrink: 0;
+        flex-shrink: 0;
+        }	
+        .row
+        { 
+        -webkit-flex-flow: row nowrap; 
+        -ms-flex-flow: row nowrap; 
+        flex-flow: row nowrap;
+
+        -webkit-align-items: center; 
+        -ms-align-items: center; 
+        align-items: center; 
+        }
+        .columns
+        { 
+        -webkit-flex-flow: column nowrap; 
+        -ms-flex-flow: column nowrap; 
+        flex-flow: column nowrap;
+        }
+        .center-item
+        { 
+        -webkit-align-items: center; 
+        -ms-align-items: center; 
+        align-items: center; 
+        }
+        .right-item
+        { 
+        -webkit-align-items: flex-end; 
+        -ms-align-items: flex-end; 
+        align-items: flex-end; 
+        }
+        .stretch-item
+        { 
+        -webkit-flex: 1 0 auto;
+        -ms-flex: 1 0 auto;
+        flex: 1 0 auto;
+
+        -webkit-align-items: stretch; 
+        -ms-align-items: stretch; 
+        align-items: stretch; 
+        }
+        .center-content
+        { 
+        -webkit-justify-content: center; 
+        -ms-justify-content: center; 
+        justify-content: center;
+        }
+        .right-content
+        { 
+        -webkit-justify-content: flex-end; 
+        -ms-justify-content: flex-end; 
+        justify-content: flex-end;
+        }
+        .between-content
+        { 
+        -webkit-justify-content: space-between; 
+        -ms-justify-content: space-between; 
+        justify-content: space-between;
+        }
+        .truncate
+        {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;        
+        }
+        #cmd
+        {
+            box-sizing: border-box; 
+
+            width: 350px;
+            height: 100%;
+
+            flex-shrink: 0;
+            margin-left: 10px;
+
+            resize: none;
+
+            line-height: 24px;
+
+            border: solid 1px #D6D6D6;
+
+            word-break: break-all;
+            white-space: normal;
+            word-wrap: break-word;
+
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+    </style>
+</head>
+<body style="height:100%;padding:0;margin:0;font-family: 'Courier New', Courier, monospace;">
+    <div class="base columns stretch-item" style="padding: 20px; height:100%;">
+        <div class="base row center-item center-content" style="font-size: 48px; height: 40px; padding: 0px;">
+            <span>NC 2D Path Viewer</span>
+        </div>
+        <div class="base row center-item center-content" style="height: 40px;">
+            <label for="ncFile">Select a NC file:</label>
+            <input type="file" id="ncFile" name="ncFile" accept=".nc,.txt,.cnc,.plt"><br><br>
+        </div>
+        <div class="base row center-item center-content" style="height: 40px;">
+            <label><span style="font-weight:700;">Panning</span>: Hold down the left mouse button and move.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</label>
+            <label><span style="font-weight:700;">Zooming</span>: Roll the mouse wheel.</label>
+        </div>
+        <div id="container" class="base row between-content">
+            <canvas id="canvas" width="1024px" height="600px" style="border: solid 0px lightgray;"></canvas>
+            <textarea id="cmd" rows="50" cols="10" wrap="hard">
+            </textarea>
+        </div>
+        <div class="base row center-item center-content" style="height: 30px;">
+            <span>straight-coding</span>
+        </div>
+    </div>
+
+    <script>
+        "use strict";
+
+        var viewer = null;
+        var pathRawData = null;
+        {
+            viewer = new Viewer2D({
+                canvas: document.getElementById("canvas"),
+                margin: {left:10,top:10,right:10,bottom:10},
+                toolbar: {left:30,top:30,right:30,bottom:30},
+                ruler: {left:30,top:30,right:30,bottom:30,majorSize:8,minorSize:4},
+                onSelected: function(start,end,autoscroll) {
+                    //console.log(start,end);
+                    let elemCommand = document.getElementById('cmd');
+
+                    let dataAhead = pathRawData.slice(0, start);
+                    elemCommand.value = dataAhead;
+                    let scrollHeight = elemCommand.scrollHeight;
+
+                    elemCommand.value = pathRawData.slice();
+                    elemCommand.selectionStart = start;
+                    if (end == null) {
+                        elemCommand.selectionEnd = elemCommand.value.length;
+                    }
+                    else {
+                        elemCommand.selectionEnd = end;
+                    }
+                    elemCommand.focus();
+                    if (autoscroll) {
+                        elemCommand.scrollTop = scrollHeight-40;
+                    }
+                },
+                unSelected: function() {
+                    let elemCommand = document.getElementById('cmd');
+                    elemCommand.blur();
+                }
+            });
+
+            document.getElementById('cmd').addEventListener('click', (e) => {
+                let elemCommand = document.getElementById('cmd');
+                console.log(elemCommand.selectionStart);
+                viewer.selectByCommand(elemCommand.selectionStart);
+            });
+
+            document.getElementById('ncFile').addEventListener('change', () => {
+                let files = document.getElementById('ncFile').files;
+                let elemCommand = document.getElementById('cmd');
+
+                if (files.length == 0) 
+                    return;
+
+                const file = files[0];
+
+                let reader = new FileReader();
+                reader.onload = (e) => {
+                    const fileContent = e.target.result;
+                    pathRawData = fileContent.slice();
+                    pathRawData = pathRawData.replaceAll('\r', ' ');
+
+                    elemCommand.value = fileContent;
+
+                    let detector = new FormatParser();
+                    let format = detector.detect(fileContent);
+                    console.log('format:', format);
+
+                    if (format == 'gcode') {
+                        let parser = new GParser();
+                        let data = parser.parse(fileContent);
+                        viewer.setData(data);
+                    }
+                    else if (format == 'hpgl') {
+                        let parser = new HpglParser();
+                        let data = parser.parse(fileContent);
+                        viewer.setData(data);
+                    }
+                    else if (format == 'dpml') {
+                        let parser = new DpmlParser();
+                        let data = parser.parse(fileContent);
+                        viewer.setData(data);
+                    }
+                };
+
+                reader.onerror = (e) => alert(e.target.error.name);
+                reader.readAsText(file);
+            });
+
+        }
+
+        window.onresize = function(event) {
+            const elemContainer = document.getElementById("container");
+                elemContainer.style.width = (window.innerWidth - 400) + 'px';
+                elemContainer.style.height = (window.innerHeight - 150) + 'px';
+
+            let rcContainer = elemContainer.getBoundingClientRect();
+            const elemCanvas = document.getElementById("canvas");
+            elemCanvas.setAttribute("width", (rcContainer.width) + 'px');
+            elemCanvas.setAttribute("height", (rcContainer.height) + 'px');
+
+            if (viewer) {
+                viewer.resize();
+            }
+        };
+
+        window.onresize();
+
+    </script>
+</body>
+</html>
