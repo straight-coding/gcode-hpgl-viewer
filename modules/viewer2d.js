@@ -880,6 +880,7 @@ class Viewer2D {
         _this.dataWin.maxY = ptClicked.y + (_this.viewPort.height - vOffY)/_this.scale.y;
 
         //console.log('onMouseWheel', delta);
+        _this.redraw(e);
     }
     markSelected(e) {
         const _this = this;
