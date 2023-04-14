@@ -110,9 +110,11 @@
 
             border: solid 1px #D6D6D6;
 
-            word-break: break-all;
-            white-space: normal;
-            word-wrap: break-word;
+            word-break: break-all !important;
+/*          white-space: normal;
+            word-wrap: break-word; */
+            white-space: pre-wrap !important; 
+            word-wrap: break-word !important;
 
             overflow-y: auto;
             overflow-x: hidden;
@@ -146,16 +148,18 @@
         "use strict";
 
         var viewer = null;
+
+        let elemCommand = document.getElementById('cmd');
+
         var pathRawData = null;
         {
             viewer = new Viewer2D({
                 canvas: document.getElementById("canvas"),
-                margin: {left:10,top:10,right:10,bottom:10},
-                toolbar: {left:30,top:30,right:30,bottom:30},
-                ruler: {left:30,top:30,right:30,bottom:30,majorSize:8,minorSize:4},
+                margin: {left:0,top:0,right:0,bottom:0},
+                toolbar: {left:0,top:0,right:0,bottom:0},
+                ruler: {left:24,top:24,right:24,bottom:24,majorSize:8,minorSize:4},
                 onSelected: function(start,end,autoscroll) {
                     //console.log(start,end);
-                    let elemCommand = document.getElementById('cmd');
 
                     let dataAhead = pathRawData.slice(0, start);
                     elemCommand.value = dataAhead;
@@ -175,20 +179,17 @@
                     }
                 },
                 unSelected: function() {
-                    let elemCommand = document.getElementById('cmd');
                     elemCommand.blur();
                 }
             });
 
             document.getElementById('cmd').addEventListener('click', (e) => {
-                let elemCommand = document.getElementById('cmd');
                 console.log(elemCommand.selectionStart);
                 viewer.selectByCommand(elemCommand.selectionStart);
             });
 
             document.getElementById('ncFile').addEventListener('change', () => {
                 let files = document.getElementById('ncFile').files;
-                let elemCommand = document.getElementById('cmd');
 
                 if (files.length == 0) 
                     return;

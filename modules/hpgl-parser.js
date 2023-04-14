@@ -1,4 +1,13 @@
+/*
+  hpgl-parser.js
+  Author: Straight Coder<simpleisrobust@gmail.com>
+  Date: April 13, 2023
+*/
+
+'use strict';
+
 //https://www.isoplotec.co.jp/HPGL/eHPGL.htm
+
 class HpglParser {
     #scale;
     #obsolute;

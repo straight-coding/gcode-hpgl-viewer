@@ -1,3 +1,11 @@
+/*
+  viewer2d.js
+  Author: Straight Coder<simpleisrobust@gmail.com>
+  Date: April 13, 2023
+*/
+
+'use strict';
+
 const AREA_CANVAS = 0;
 const AREA_TOOLBAR = 1;
 const AREA_RULER = 2;
@@ -253,8 +261,8 @@ class Viewer2D {
         let rect = {
             x: 0,
             y: 0,
-            width: rcCan.width,
-            height: rcCan.height
+            width: rcCan.width-1,
+            height: rcCan.height-1
         };
 
         let color = '#FFFFFF';
@@ -616,6 +624,20 @@ class Viewer2D {
         rect.height = _this.viewPort.height;
         return rect;
     }
+    plotArea(e) {
+        const _this = this;
+        let rcClip = _this.getClipRect();
+
+        let rcCan = _this.elemCanvas.getBoundingClientRect();
+        let xCan = e.clientX - rcCan.left;
+        let yCan = e.clientY - rcCan.top;
+
+        if ((xCan < rcClip.left) || (xCan > rcClip.left + rcClip.width) ||
+            (yCan < rcClip.top) || (yCan > rcClip.top + rcClip.height)) {
+            return false;
+        }
+        return true;
+    }
     drawCrosshair(e) {
         const _this = this;
         let rcClip = _this.getClipRect();
@@ -722,7 +744,7 @@ class Viewer2D {
             return;
         }
 
-        console.log('data', data);
+        //console.log('data', data);
 
         _this.dataWin.minX = dim[HEADLEN]-10;
         _this.dataWin.minY = dim[HEADLEN+1]-10;
@@ -782,6 +804,11 @@ class Viewer2D {
 
         e.preventDefault();
 
+        if (!_this.plotArea(e)) {
+            _this.onMouseUp(e);
+            return;
+        }
+
         if (_this.lastDragPoint) {
             let moved = {
                 x: e.clientX - _this.lastDragPoint.x,
@@ -839,7 +866,7 @@ class Viewer2D {
             y: _this.dataWin.minY + vOffY / _this.scale.y
         };
 
-        if (delta < 0) {
+        if (delta >= 0) {
             _this.scale.x *= 1.05;
         }
         else {
@@ -875,17 +902,17 @@ class Viewer2D {
 
         let col = Math.floor(pickup.x/_this.#indexBlock);
         let row = Math.floor(pickup.y/_this.#indexBlock);
-        console.log('clicking', pickup.x, pickup.y, col, row);
+        //console.log('clicking', pickup.x, pickup.y, col, row);
 
         if ((row in _this.#pathIndex) && (col in _this.#pathIndex[row])) {
-            console.log('found', pickup.x, pickup.y, col, row);
+            //console.log('found', pickup.x, pickup.y, col, row);
 
             let figList = _this.#pathIndex[row][col];
             for(let f = 0; f < figList.length; f ++) {
                 let idx = figList[f];
                 let figure = _this.data[idx];
                 if (_this.hitTest(pickup.x, pickup.y, figure.points)) {
-                    console.log('selected', figure);
+                    //console.log('selected', figure);
                     figure.selected = true;
                     if (typeof (_this.onSelected) == 'function') {
                         if (idx < _this.data.length-1) {
@@ -957,9 +984,11 @@ class Viewer2D {
     }
     unselectAll() {
         const _this = this;
-        for(let f = 1; f < _this.data.length; f ++) {
-            let figure = _this.data[f];
-            figure.selected = false;
+        if (_this.data) {
+            for(let f = 1; f < _this.data.length; f ++) {
+                let figure = _this.data[f];
+                figure.selected = false;
+            }
         }
     }
     updateIndex() {
@@ -996,7 +1025,7 @@ class Viewer2D {
                 lastY = y;
             }
         }
-        console.log('index', _this.#pathIndex);
+        //console.log('index', _this.#pathIndex);
     }
     indexSegment(f, A, B, step2) {
         if (Viewer2D.distance2(A,B) < step2) {

@@ -1,3 +1,11 @@
+/*
+  dpml-parser.js
+  Author: Straight Coder<simpleisrobust@gmail.com>
+  Date: April 13, 2023
+*/
+
+'use strict';
+
 //https://web.archive.org/web/20171216020007/http://www.winline.com/evalpen_dmpl.html
 
 class DpmlParser {

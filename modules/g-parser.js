@@ -1,3 +1,10 @@
+/*
+  g-parser.js
+  Author: Straight Coder<simpleisrobust@gmail.com>
+  Date: April 13, 2023
+*/
+
+'use strict';
 
 class GParser {
     #scale;
