@@ -139,99 +139,97 @@
             <textarea id="cmd" rows="50" cols="10" wrap="hard">
             </textarea>
         </div>
-        <div class="base row center-item center-content" style="height: 30px;">
-            <span>straight-coding</span>
+        <div class="base row center-item center-content" style="height: 30px;margin-top: 4px;">
+            <a href="https://github.com/straight-coding/"> 
+                <span>https://github.com/straight-coding/</span>
+            </a>
         </div>
     </div>
 
     <script>
         "use strict";
 
-        var viewer = null;
-
         let elemCommand = document.getElementById('cmd');
 
         var pathRawData = null;
-        {
-            viewer = new Viewer2D({
-                canvas: document.getElementById("canvas"),
-                margin: {left:0,top:0,right:0,bottom:0},
-                toolbar: {left:0,top:0,right:0,bottom:0},
-                ruler: {left:24,top:24,right:24,bottom:24,majorSize:8,minorSize:4},
-                onSelected: function(start,end,autoscroll) {
-                    //console.log(start,end);
 
-                    let dataAhead = pathRawData.slice(0, start);
-                    elemCommand.value = dataAhead;
-                    let scrollHeight = elemCommand.scrollHeight;
+        var viewer = new Viewer2D({
+            canvas: document.getElementById("canvas"),
+            margin: {left:0,top:0,right:0,bottom:0},
+            toolbar: {left:0,top:0,right:0,bottom:0},
+            ruler: {left:24,top:24,right:24,bottom:24,majorSize:8,minorSize:4},
+            onSelected: function(start,end,autoscroll) {
+                //console.log(start,end);
 
-                    elemCommand.value = pathRawData.slice();
-                    elemCommand.selectionStart = start;
-                    if (end == null) {
-                        elemCommand.selectionEnd = elemCommand.value.length;
-                    }
-                    else {
-                        elemCommand.selectionEnd = end;
-                    }
-                    elemCommand.focus();
-                    if (autoscroll) {
-                        elemCommand.scrollTop = scrollHeight-40;
-                    }
-                },
-                unSelected: function() {
-                    elemCommand.blur();
+                let dataAhead = pathRawData.slice(0, start);
+                elemCommand.value = dataAhead;
+                let scrollHeight = elemCommand.scrollHeight;
+
+                elemCommand.value = pathRawData.slice();
+                elemCommand.selectionStart = start;
+                if (end == null) {
+                    elemCommand.selectionEnd = elemCommand.value.length;
                 }
-            });
+                else {
+                    elemCommand.selectionEnd = end;
+                }
+                elemCommand.focus();
+                if (autoscroll) {
+                    elemCommand.scrollTop = scrollHeight-40;
+                }
+            },
+            unSelected: function() {
+                elemCommand.blur();
+            }
+        });
 
-            document.getElementById('cmd').addEventListener('click', (e) => {
-                console.log(elemCommand.selectionStart);
-                viewer.selectByCommand(elemCommand.selectionStart);
-            });
+        elemCommand.addEventListener('click', (event) => {
+            //console.log(elemCommand.selectionStart);
+            viewer.selectByCommand(elemCommand.selectionStart);
+        });
 
-            document.getElementById('ncFile').addEventListener('change', () => {
-                let files = document.getElementById('ncFile').files;
+        document.getElementById('ncFile').addEventListener('change', (event) => {
+            let files = document.getElementById('ncFile').files;
 
-                if (files.length == 0) 
-                    return;
+            if (files.length == 0) 
+                return;
 
-                const file = files[0];
+            const file = files[0];
 
-                let reader = new FileReader();
-                reader.onload = (e) => {
-                    const fileContent = e.target.result;
-                    pathRawData = fileContent.slice();
-                    pathRawData = pathRawData.replaceAll('\r', ' ');
+            let reader = new FileReader();
+            reader.onload = (e) => {
+                const fileContent = e.target.result;
+                pathRawData = fileContent.slice();
+                pathRawData = pathRawData.replaceAll('\r', ' ');
 
-                    elemCommand.value = fileContent;
+                elemCommand.value = fileContent;
 
-                    let detector = new FormatParser();
-                    let format = detector.detect(fileContent);
-                    console.log('format:', format);
+                let detector = new FormatParser();
+                let format = detector.detect(fileContent);
+                console.log('format:', format);
 
-                    if (format == 'gcode') {
-                        let parser = new GParser();
-                        let data = parser.parse(fileContent);
-                        viewer.setData(data);
-                    }
-                    else if (format == 'hpgl') {
-                        let parser = new HpglParser();
-                        let data = parser.parse(fileContent);
-                        viewer.setData(data);
-                    }
-                    else if (format == 'dpml') {
-                        let parser = new DpmlParser();
-                        let data = parser.parse(fileContent);
-                        viewer.setData(data);
-                    }
-                };
+                if (format == 'gcode') {
+                    let parser = new GParser();
+                    let data = parser.parse(fileContent);
+                    viewer.setData(data);
+                }
+                else if (format == 'hpgl') {
+                    let parser = new HpglParser();
+                    let data = parser.parse(fileContent);
+                    viewer.setData(data);
+                }
+                else if (format == 'dpml') {
+                    let parser = new DpmlParser();
+                    let data = parser.parse(fileContent);
+                    viewer.setData(data);
+                }
+            };
 
-                reader.onerror = (e) => alert(e.target.error.name);
-                reader.readAsText(file);
-            });
+            reader.onerror = (e) => alert(e.target.error.name);
+            reader.readAsText(file);
+        });
 
-        }
-
-        window.onresize = function(event) {
+        window.onresize = (event) => {
             const elemContainer = document.getElementById("container");
                 elemContainer.style.width = (window.innerWidth - 400) + 'px';
                 elemContainer.style.height = (window.innerHeight - 150) + 'px';
@@ -246,7 +244,9 @@
             }
         };
 
-        window.onresize();
+        window.onload = (event) => {
+            window.onresize();
+        };        
 
     </script>
 </body>

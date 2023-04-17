@@ -791,7 +791,7 @@ class Viewer2D {
                 y: e.clientY,
             };
 
-            _this.unselectAll();
+            //_this.unselectAll();
 
             _this.redraw(e);
         }
@@ -842,11 +842,13 @@ class Viewer2D {
         _this.lastDragPoint = null;
         _this.elemCanvas.style.cursor = 'default';
 
-        if (moved && ((moved.x > 2) || (moved.y > 2))) {
-            _this.redraw(e);
-        }
-        else {
-            _this.markSelected(e);
+        if (e) {
+            if (moved && ((moved.x > 2) || (moved.y > 2))) {
+                _this.redraw(e);
+            }
+            else {
+                _this.markSelected(e);
+            }
         }
     }
     onMouseWheel(e) {
@@ -860,7 +862,7 @@ class Viewer2D {
 
         let rcCan = _this.elemCanvas.getBoundingClientRect();
         let vOffX = (e.clientX - rcCan.left - _this.viewPort.x);
-        let vOffY = (e.clientY - rcCan.top  - _this.viewPort.y);
+        let vOffY = _this.viewPort.height - (e.clientY - rcCan.top  - _this.viewPort.y);
         let ptClicked = {
             x: _this.dataWin.minX + vOffX / _this.scale.x,
             y: _this.dataWin.minY + vOffY / _this.scale.y
