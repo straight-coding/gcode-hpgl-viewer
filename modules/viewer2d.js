@@ -15,6 +15,8 @@ const HEADLEN = 3;
 const PICK_TOLERANT = 2;
 const BLOCK_SIZE = 50;
 
+const ZOOM_STEP = 0.05;
+
 class NiceScale {
     constructor(lowerBound, upperBound, _maxTicks) {
         this.maxTicks = _maxTicks || 10;
@@ -805,7 +807,7 @@ class Viewer2D {
         e.preventDefault();
 
         if (!_this.plotArea(e)) {
-            _this.onMouseUp(e);
+            _this.onMouseUp(null);
             return;
         }
 
@@ -869,10 +871,10 @@ class Viewer2D {
         };
 
         if (delta >= 0) {
-            _this.scale.x *= 1.05;
+            _this.scale.x *= (1.0 + ZOOM_STEP);
         }
         else {
-            _this.scale.x *= 0.95;
+            _this.scale.x *= (1.0 - ZOOM_STEP);
         }
         _this.scale.y = _this.scale.x;
 
