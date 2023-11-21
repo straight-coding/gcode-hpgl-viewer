@@ -830,10 +830,12 @@ class Viewer2D {
         const _this = this;
         if (!_this.inited)
             return;
-        e.preventDefault();
+        if (e) {
+            e.preventDefault();
+        }
 
         let moved = null;
-        if (_this.firstDragPoint) {
+        if (e && _this.firstDragPoint) {
             moved = {
                 x: e.clientX - _this.firstDragPoint.x,
                 y: e.clientY - _this.firstDragPoint.y
