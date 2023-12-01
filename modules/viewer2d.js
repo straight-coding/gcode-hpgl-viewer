@@ -520,10 +520,24 @@ class Viewer2D {
                         EOF = true;
                         break;
                     }
+
+                    if (node[0] > 3) {
+                        if (node[0] == 17) {
+                            //plane XY
+                        }
+                        else if (node[0] == 18) {
+                            //plane ZX
+                        }
+                        else if (node[0] == 19) {
+                            //plane YZ
+                        }
+                        continue;
+                    }
+
                     let vx = _this.viewPort.x + (node[HEADLEN] - _this.dataWin.minX) * _this.scale.x;
                     let vy = _this.viewPort.y + _this.viewPort.height - (node[HEADLEN+1] - _this.dataWin.minY) * _this.scale.y;
                     let vz = (node[HEADLEN+2]) * _this.scale.x;
-                    if (p == 0) {
+                    if (node[0] == 0) {
                         Viewer2D.lineFrom(_this.ctx, vx, vy);
                     }
                     else if (node[0] <= 1) {
@@ -536,12 +550,8 @@ class Viewer2D {
                         let cvy = _this.viewPort.y + _this.viewPort.height - (lastDy + node[HEADLEN+4] - _this.dataWin.minY) * _this.scale.y;
                         let cvz = (lastDz + node[HEADLEN+5]) * _this.scale.x;
 
-                        if ((lastCmd != 0) && (Math.abs(lastVx-vx) < Number.EPSILON) && (Math.abs(lastVy-vy) < Number.EPSILON)) {
-                            Viewer2D.lineTo(_this.ctx, vx, vy);
-                        }
-                        else {
-                            Viewer2D.drawArc(_this.ctx, node[0], [lastVx,lastVy,lastVz], [cvx,cvy,cvz], [vx,vy,vz]);
-                        }
+                        Viewer2D.drawArc(_this.ctx, node[0], [lastVx,lastVy,lastVz], [cvx,cvy,cvz], [vx,vy,vz]);
+                        
                         if (node[0] == 2) {
                             pointsG2.push(vx);
                             pointsG2.push(vy);
@@ -551,19 +561,6 @@ class Viewer2D {
                             pointsG3.push(vy);
                         }
                     }
-                    else if (node[0] == 17) {
-                        //plane XY
-                    }
-                    else if (node[0] == 18) {
-                        //plane ZX
-                    }
-                    else if (node[0] == 19) {
-                        //plane YZ
-                    }
-                    else {
-                        continue;
-                    }
-
                     lastCmd = node[0];
 
                     lastDx = node[HEADLEN];
