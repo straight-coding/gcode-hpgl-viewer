@@ -198,6 +198,7 @@
         viewer.showZasGray(document.getElementById('zValue').checked);
 
         let idxFile = 2;
+        let samples = {};
         checkFileExists('samples/circles with R.nc', ''+(idxFile++), '[GCode] Circles with R words');
         checkFileExists('samples/B Fabric Nesting.plt', ''+(idxFile++), '[HPGL] B Fabric Nesting');
         checkFileExists('samples/S Fabric Nesting.plt', ''+(idxFile++), '[HPGL] S Fabric Nesting');
@@ -235,6 +236,11 @@
             let idx = document.getElementById('selectFile').value;
             if (idx == 1) {
                 document.getElementById('ncFile').click();
+            }
+            else if (idx >= 2) {
+                if (idx in samples) {
+                    console.log('Requesting ...', samples[idx]);
+                }
             }
         }
 
@@ -341,6 +347,8 @@
                             option.value = key;
                             var select = document.getElementById('selectFile');
                             select.appendChild(option);
+
+                            samples[key] = filePath;
                             //console.log('file existed');
                         }
                         else {
