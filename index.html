@@ -197,7 +197,12 @@
         document.getElementById('zValue').checked = true;
         viewer.showZasGray(document.getElementById('zValue').checked);
 
-        fileExists();
+        let idxFile = 2;
+        checkFileExists('samples/circles with R.nc', ''+(idxFile++), '[GCode] Circles with R words');
+        checkFileExists('samples/B Fabric Nesting.plt', ''+(idxFile++), '[HPGL] B Fabric Nesting');
+        checkFileExists('samples/S Fabric Nesting.plt', ''+(idxFile++), '[HPGL] S Fabric Nesting');
+        checkFileExists('samples/circle_d10mm.nc', ''+(idxFile++), '[GCode] Single circle with I/J/K words');
+        checkFileExists('samples/standard geometric shapes.nc', ''+(idxFile++), '[GCode] Mixed shapes');
 
         elemCommand.addEventListener('click', (event) => {
             //console.log(elemCommand.selectionStart);
@@ -325,20 +330,25 @@
             window.onresize();
         };
 
-        function fileExists() {
+        function checkFileExists(filePath, key, title) {
             try {
                 var xhttp = new XMLHttpRequest();
                 xhttp.onreadystatechange = function() {
                     if (this.readyState == 4) {
                         if (this.status == 200) {
-                            console.log('file existed');
+                            var option = document.createElement("option");
+                            option.text = title;
+                            option.value = key;
+                            var select = document.getElementById('selectFile');
+                            select.appendChild(option);
+                            //console.log('file existed');
                         }
                         else {
                             console.log('file not existed', this.status);
                         }
                     } 
                 };
-                xhttp.open('HEAD', encodeURIComponent('samples/circles with R.nc'), true);
+                xhttp.open('HEAD', encodeURIComponent(filePath), true);
                 xhttp.send();            
             }
             catch(e) { console.log(e); }
