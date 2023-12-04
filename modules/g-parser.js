@@ -283,7 +283,7 @@ class GParser {
                         if (figure == null) {
                             figure = new Figure();
                         }
-                        figure.append(this.lastG, (n+1), lastG0Pos, this.lastPos.x, this.lastPos.y, this.lastPos.z);
+                        figure.append(this.prevG, (n+1), lastG0Pos, this.lastPos.x, this.lastPos.y, this.lastPos.z);
                     }
 
                     if (this.lastG == 1) {
