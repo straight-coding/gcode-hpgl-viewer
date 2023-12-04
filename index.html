@@ -260,57 +260,61 @@
                 let reader = new FileReader();
                 reader.onload = (e) => {
                     const fileContent = e.target.result;
-                    pathRawData = fileContent.slice();
-                    pathRawData = pathRawData.replaceAll('\r', ' ');
-
-                    elemCommand.value = fileContent;
-
-                    let tStart = new Date().getTime();
-
-                    let detector = new FormatParser();
-                    let format = detector.detect(fileContent);
-
-                    console.log('format:', format, ', elapsed: ', (new Date().getTime()-tStart));
-                    tStart = new Date().getTime();
-
-                    if (format == 'gcode') {
-                        let parser = new GParser();
-                        let data = parser.parse(fileContent);
-
-                        console.log('Parser elapsed: ', (new Date().getTime()-tStart));
-                        tStart = new Date().getTime();
-                        
-                        viewer.setData(data);
-                    }
-                    else if (format == 'hpgl') {
-                        let parser = new HpglParser();
-                        let data = parser.parse(fileContent);
-
-                        console.log('Parser elapsed: ', (new Date().getTime()-tStart));
-                        tStart = new Date().getTime();
-
-                        viewer.setData(data);
-                    }
-                    else if (format == 'dpml') {
-                        let parser = new DpmlParser();
-                        let data = parser.parse(fileContent);
-
-                        console.log('Parser elapsed: ', (new Date().getTime()-tStart));
-                        tStart = new Date().getTime();
-
-                        viewer.setData(data);
-                    }
-
-                    console.log('Render elapsed: ', (new Date().getTime()-tStart));
-
-                    document.getElementById('loading').style.zIndex = 0;
-                    document.getElementById('canvas').style.zIndex = 100;
-                    document.getElementById('progress').style.display = 'none';
+                    loadFromText(fileContent);
                 };
 
                 reader.onerror = (e) => alert(e.target.error.name);
                 reader.readAsText(file);
             }, 100);
+        }
+
+        function loadFromText(fileContent) {
+            pathRawData = fileContent.slice();
+            pathRawData = pathRawData.replaceAll('\r', ' ');
+
+            elemCommand.value = fileContent;
+
+            let tStart = new Date().getTime();
+
+            let detector = new FormatParser();
+            let format = detector.detect(fileContent);
+
+            console.log('format:', format, ', elapsed: ', (new Date().getTime()-tStart));
+            tStart = new Date().getTime();
+
+            if (format == 'gcode') {
+                let parser = new GParser();
+                let data = parser.parse(fileContent);
+
+                console.log('Parser elapsed: ', (new Date().getTime()-tStart));
+                tStart = new Date().getTime();
+                
+                viewer.setData(data);
+            }
+            else if (format == 'hpgl') {
+                let parser = new HpglParser();
+                let data = parser.parse(fileContent);
+
+                console.log('Parser elapsed: ', (new Date().getTime()-tStart));
+                tStart = new Date().getTime();
+
+                viewer.setData(data);
+            }
+            else if (format == 'dpml') {
+                let parser = new DpmlParser();
+                let data = parser.parse(fileContent);
+
+                console.log('Parser elapsed: ', (new Date().getTime()-tStart));
+                tStart = new Date().getTime();
+
+                viewer.setData(data);
+            }
+
+            console.log('Render elapsed: ', (new Date().getTime()-tStart));
+
+            document.getElementById('loading').style.zIndex = 0;
+            document.getElementById('canvas').style.zIndex = 100;
+            document.getElementById('progress').style.display = 'none';
         }
 
         window.onresize = (event) => {
@@ -358,6 +362,29 @@
                 };
                 xhttp.open('HEAD', encodeURIComponent(filePath), true);
                 xhttp.send();            
+            }
+            catch(e) { console.log(e); }
+        }
+
+        function requestSample(filePath) {
+            try {
+                document.getElementById('loading').style.zIndex = 100;
+                document.getElementById('canvas').style.zIndex = 0;
+                document.getElementById('progress').style.display = '';
+
+                setTimeout(function() {
+                    var xhttp = new XMLHttpRequest();
+                    xhttp.onreadystatechange = function() {
+                        if (this.readyState == 4) {
+                            if (this.status == 200) {
+                                loadFromText(xhttp.responseText);
+                            }
+                        } 
+                    };
+                    xhttp.open('GET', encodeURIComponent(filePath), true);
+                    xhttp.send();            
+
+                }, 100);
             }
             catch(e) { console.log(e); }
         }
