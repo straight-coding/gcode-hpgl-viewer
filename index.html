@@ -123,12 +123,19 @@
 </head>
 <body style="width:100%;height:100%;padding:0;margin:0;font-family: 'Courier New', Courier, monospace;">
     <div class="base columns stretch-item" style="padding: 20px; height:100%; width: 100%;">
-        <div class="base row center-item center-content" style="font-size: 48px; height: 40px; padding: 0px;">
-            <span>NC 2D Path Viewer</span>
+        <div class="base row center-item center-content" style="font-size: 36px; font-weight:700;height: 40px; padding: 0px;">
+            <span>HPGL/GCode Viewer</span>
         </div>
         <div class="base row center-item center-content" style="height: 40px;">
-            <label for="ncFile">Select a NC file:</label>
-            <input type="file" id="ncFile" name="ncFile" accept=".nc,.txt,.cnc,.plt"><br><br>
+            <select id="selectFile">
+                <option value="0">--- Select path ---</option>
+                <option value="1">Local file</option>
+            </select>
+
+            <input type="file" id="ncFile" name="ncFile" accept=".nc,.txt,.cnc,.plt" style="display:none;"/>
+
+            <input type="checkbox" id="zValue" name="zValue"/>
+            <label for="zValue">Use grayscale to represent the Z-coordinate</label>
         </div>
         <div class="base row center-item center-content" style="height: 40px;">
             <label><span style="font-weight:700;">Panning</span>: Hold down the left mouse button and move.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</label>
@@ -187,13 +194,46 @@
                 elemCommand.blur();
             }
         });
+        document.getElementById('zValue').checked = true;
+        viewer.showZasGray(document.getElementById('zValue').checked);
+
+        fileExists();
 
         elemCommand.addEventListener('click', (event) => {
             //console.log(elemCommand.selectionStart);
             viewer.selectByCommand(elemCommand.selectionStart);
         });
 
+        document.getElementById('zValue').addEventListener('change', (event) => {
+            let showGray = document.getElementById('zValue').checked;
+            viewer.showZasGray(showGray);
+            loadPath();
+        });
+
         document.getElementById('ncFile').addEventListener('change', (event) => {
+            loadPath();
+        });
+
+        let flag = 0;
+        document.getElementById('selectFile').addEventListener('click', (event) => {
+            if (flag === 0) {
+                event.stopPropagation();
+                flag = 1;
+                document.addEventListener('click', triggerFile);
+            }
+        });
+
+        function triggerFile(event) {
+            flag = 0;
+            document.removeEventListener('click', triggerFile);
+
+            let idx = document.getElementById('selectFile').value;
+            if (idx == 1) {
+                document.getElementById('ncFile').click();
+            }
+        }
+
+        function loadPath() {
             let files = document.getElementById('ncFile').files;
 
             if (files.length == 0) 
@@ -205,42 +245,62 @@
             document.getElementById('canvas').style.zIndex = 0;
             document.getElementById('progress').style.display = '';
 
-            let reader = new FileReader();
-            reader.onload = (e) => {
-                const fileContent = e.target.result;
-                pathRawData = fileContent.slice();
-                pathRawData = pathRawData.replaceAll('\r', ' ');
+            setTimeout(function(){
+                let reader = new FileReader();
+                reader.onload = (e) => {
+                    const fileContent = e.target.result;
+                    pathRawData = fileContent.slice();
+                    pathRawData = pathRawData.replaceAll('\r', ' ');
 
-                elemCommand.value = fileContent;
+                    elemCommand.value = fileContent;
 
-                let detector = new FormatParser();
-                let format = detector.detect(fileContent);
-                console.log('format:', format);
+                    let tStart = new Date().getTime();
 
-                if (format == 'gcode') {
-                    let parser = new GParser();
-                    let data = parser.parse(fileContent);
-                    viewer.setData(data);
-                }
-                else if (format == 'hpgl') {
-                    let parser = new HpglParser();
-                    let data = parser.parse(fileContent);
-                    viewer.setData(data);
-                }
-                else if (format == 'dpml') {
-                    let parser = new DpmlParser();
-                    let data = parser.parse(fileContent);
-                    viewer.setData(data);
-                }
+                    let detector = new FormatParser();
+                    let format = detector.detect(fileContent);
 
-                document.getElementById('loading').style.zIndex = 0;
-                document.getElementById('canvas').style.zIndex = 100;
-                document.getElementById('progress').style.display = 'none';
-            };
+                    console.log('format:', format, ', elapsed: ', (new Date().getTime()-tStart));
+                    tStart = new Date().getTime();
 
-            reader.onerror = (e) => alert(e.target.error.name);
-            reader.readAsText(file);
-        });
+                    if (format == 'gcode') {
+                        let parser = new GParser();
+                        let data = parser.parse(fileContent);
+
+                        console.log('Parser elapsed: ', (new Date().getTime()-tStart));
+                        tStart = new Date().getTime();
+                        
+                        viewer.setData(data);
+                    }
+                    else if (format == 'hpgl') {
+                        let parser = new HpglParser();
+                        let data = parser.parse(fileContent);
+
+                        console.log('Parser elapsed: ', (new Date().getTime()-tStart));
+                        tStart = new Date().getTime();
+
+                        viewer.setData(data);
+                    }
+                    else if (format == 'dpml') {
+                        let parser = new DpmlParser();
+                        let data = parser.parse(fileContent);
+
+                        console.log('Parser elapsed: ', (new Date().getTime()-tStart));
+                        tStart = new Date().getTime();
+
+                        viewer.setData(data);
+                    }
+
+                    console.log('Render elapsed: ', (new Date().getTime()-tStart));
+
+                    document.getElementById('loading').style.zIndex = 0;
+                    document.getElementById('canvas').style.zIndex = 100;
+                    document.getElementById('progress').style.display = 'none';
+                };
+
+                reader.onerror = (e) => alert(e.target.error.name);
+                reader.readAsText(file);
+            }, 100);
+        }
 
         window.onresize = (event) => {
             const elemContainer = document.getElementById("container");
@@ -263,7 +323,26 @@
 
         window.onload = (event) => {
             window.onresize();
-        };        
+        };
+
+        function fileExists() {
+            try {
+                var xhttp = new XMLHttpRequest();
+                xhttp.onreadystatechange = function() {
+                    if (this.readyState == 4) {
+                        if (this.status == 200) {
+                            console.log('file existed');
+                        }
+                        else {
+                            console.log('file not existed', this.status);
+                        }
+                    } 
+                };
+                xhttp.open('HEAD', encodeURIComponent('samples/circles with R.nc'), true);
+                xhttp.send();            
+            }
+            catch(e) { console.log(e); }
+        }
 
     </script>
 </body>

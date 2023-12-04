@@ -81,7 +81,7 @@ class GParser {
             }
 
             if ((n %1000) == 0) {
-                console.log('line #' + n);
+                //console.log('line #' + n);
             }
 
             line = line.toUpperCase();

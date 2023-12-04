@@ -17,6 +17,8 @@ const BLOCK_SIZE = 50;
 
 const ZOOM_STEP = 0.05;
 
+const GRAYSCALE = 240;
+
 class NiceScale {
     constructor(lowerBound, upperBound, _maxTicks) {
         this.maxTicks = _maxTicks || 10;
@@ -131,6 +133,9 @@ class Viewer2D {
         Object.assign(this, opt);
 
         this.init();
+    }
+    showZasGray(enable) {
+        this.zAsGray = enable;
     }
     valid(obj) {
         return ((obj != undefined) && (obj != null));
@@ -252,7 +257,10 @@ class Viewer2D {
         ctx.stroke();
     }
     static arcWithGray(ctx, type, from, center, to, gray) {
-        Viewer2D.drawArc(ctx, type, from, center, to);
+        ctx.beginPath();
+            ctx.strokeStyle = gray[1];
+            Viewer2D.drawArc(ctx, type, from, center, to);
+        ctx.stroke();
     }
     static fillRect(ctx, x, y, width, height) {
         ctx.fillRect(parseInt(x, 10) + 0.5, parseInt(y, 10) + 0.5, width, height);
@@ -552,11 +560,11 @@ class Viewer2D {
                     let vy = _this.viewPort.y + _this.viewPort.height - (node[HEADLEN+1] - _this.dataWin.minY) * _this.scale.y;
                     let vz = (node[HEADLEN+2]) * _this.scale.x;
                     let gray = null;
-                    if (_this.grayMap) {
+                    if (_this.grayMap && _this.valid(lastDz)) {
                         let zRange = Math.abs(_this.dataWin.maxZ - _this.dataWin.minZ);
-                        let idx1 = Math.floor(256 * (lastDz - _this.dataWin.minZ) / zRange);
-                        let idx2 = Math.floor(256 * (node[HEADLEN+2] - _this.dataWin.minZ) / zRange);
-                        gray = [_this.grayMap[idx1 % 256], _this.grayMap[idx2 % 256]];
+                        let idx1 = Math.floor(GRAYSCALE * (lastDz - _this.dataWin.minZ) / zRange);
+                        let idx2 = Math.floor(GRAYSCALE * (node[HEADLEN+2] - _this.dataWin.minZ) / zRange);
+                        gray = [_this.grayMap[idx1 % GRAYSCALE], _this.grayMap[idx2 % GRAYSCALE]];
                     }
 
                     if (node[0] == 0) {
@@ -787,15 +795,17 @@ class Viewer2D {
         _this.dataWin.maxZ = dim[HEADLEN+5]+10;
 
         _this.grayMap = null;
-        let zRange = Math.abs(_this.dataWin.maxZ - _this.dataWin.minZ);
-        if (zRange > Number.EPSILON) {
-            _this.grayMap = {};
-            for(let i = 0; i < 256; i ++) {
-                let hex = i.toString(16);
-                while (hex.length < 2) {
-                    hex = "0" + hex;
+        if (_this.zAsGray) {
+            let zRange = Math.abs(_this.dataWin.maxZ - _this.dataWin.minZ);
+            if (zRange > Number.EPSILON) {
+                _this.grayMap = {};
+                for(let i = 0; i < GRAYSCALE; i ++) {
+                    let hex = i.toString(16);
+                    while (hex.length < 2) {
+                        hex = "0" + hex;
+                    }
+                    _this.grayMap[i] = '#' + hex + hex + hex;
                 }
-                _this.grayMap[i] = '#' + hex + hex + hex;
             }
         }
 
