@@ -126,6 +126,7 @@ class Viewer2D {
         this.firstDragPoint = null;
         this.lastDragPoint = null;
         this.showDataPoint = false;
+        this.zAsGray = true;
 
         Object.assign(this, opt);
 
@@ -239,6 +240,19 @@ class Viewer2D {
         else {
             ctx.arc(parseInt(center[0],10)+0.5, parseInt(center[1],10)+0.5, radius, startAngle, endAngle, counterclockwise);
         }
+    }
+    static lineWithGray(ctx, from, to, gray) {
+        let gradient = ctx.createLinearGradient(from[0], from[1], to[0], to[1]);
+            gradient.addColorStop(0, gray[0]);
+            gradient.addColorStop(1, gray[1]);
+        ctx.beginPath();
+            ctx.strokeStyle = gradient;//gray;
+            ctx.moveTo(parseInt(from[0], 10) + 0.5, parseInt(from[1], 10) + 0.5);
+            ctx.lineTo(parseInt(to[0], 10) + 0.5, parseInt(to[1], 10) + 0.5);
+        ctx.stroke();
+    }
+    static arcWithGray(ctx, type, from, center, to, gray) {
+        Viewer2D.drawArc(ctx, type, from, center, to);
     }
     static fillRect(ctx, x, y, width, height) {
         ctx.fillRect(parseInt(x, 10) + 0.5, parseInt(y, 10) + 0.5, width, height);
@@ -537,11 +551,24 @@ class Viewer2D {
                     let vx = _this.viewPort.x + (node[HEADLEN] - _this.dataWin.minX) * _this.scale.x;
                     let vy = _this.viewPort.y + _this.viewPort.height - (node[HEADLEN+1] - _this.dataWin.minY) * _this.scale.y;
                     let vz = (node[HEADLEN+2]) * _this.scale.x;
+                    let gray = null;
+                    if (_this.grayMap) {
+                        let zRange = Math.abs(_this.dataWin.maxZ - _this.dataWin.minZ);
+                        let idx1 = Math.floor(256 * (lastDz - _this.dataWin.minZ) / zRange);
+                        let idx2 = Math.floor(256 * (node[HEADLEN+2] - _this.dataWin.minZ) / zRange);
+                        gray = [_this.grayMap[idx1 % 256], _this.grayMap[idx2 % 256]];
+                    }
+
                     if (node[0] == 0) {
                         Viewer2D.lineFrom(_this.ctx, vx, vy);
                     }
                     else if (node[0] <= 1) {
-                        Viewer2D.lineTo(_this.ctx, vx, vy);
+                        if (gray != null) {
+                            Viewer2D.lineWithGray(_this.ctx, [lastVx,lastVy,lastVz], [vx,vy,vz], gray);
+                        }
+                        else {
+                            Viewer2D.lineTo(_this.ctx, vx, vy);
+                        }
                         pointsG1.push(vx);
                         pointsG1.push(vy);
                     }
@@ -550,7 +577,12 @@ class Viewer2D {
                         let cvy = _this.viewPort.y + _this.viewPort.height - (lastDy + node[HEADLEN+4] - _this.dataWin.minY) * _this.scale.y;
                         let cvz = (lastDz + node[HEADLEN+5]) * _this.scale.x;
 
-                        Viewer2D.drawArc(_this.ctx, node[0], [lastVx,lastVy,lastVz], [cvx,cvy,cvz], [vx,vy,vz]);
+                        if (gray != null) {
+                            Viewer2D.arcWithGray(_this.ctx, node[0], [lastVx,lastVy,lastVz], [cvx,cvy,cvz], [vx,vy,vz], gray);
+                        }
+                        else {
+                            Viewer2D.drawArc(_this.ctx, node[0], [lastVx,lastVy,lastVz], [cvx,cvy,cvz], [vx,vy,vz]);
+                        }
                         
                         if (node[0] == 2) {
                             pointsG2.push(vx);
@@ -744,17 +776,36 @@ class Viewer2D {
         }
 
         //console.log('data', data);
+        _this.rendering = true;
 
         _this.dataWin.minX = dim[HEADLEN]-10;
         _this.dataWin.minY = dim[HEADLEN+1]-10;
+        _this.dataWin.minZ = dim[HEADLEN+2]-10;
+
         _this.dataWin.maxX = dim[HEADLEN+3]+10;
         _this.dataWin.maxY = dim[HEADLEN+4]+10;
+        _this.dataWin.maxZ = dim[HEADLEN+5]+10;
+
+        _this.grayMap = null;
+        let zRange = Math.abs(_this.dataWin.maxZ - _this.dataWin.minZ);
+        if (zRange > Number.EPSILON) {
+            _this.grayMap = {};
+            for(let i = 0; i < 256; i ++) {
+                let hex = i.toString(16);
+                while (hex.length < 2) {
+                    hex = "0" + hex;
+                }
+                _this.grayMap[i] = '#' + hex + hex + hex;
+            }
+        }
 
         _this.data = data;
         _this.updateIndex();
 
         _this.updateScale();
         _this.redraw();
+
+        _this.rendering = false;
     }
     updateScale() {
         const _this = this;
@@ -857,6 +908,10 @@ class Viewer2D {
         if (!_this.inited)
             return;
         e.preventDefault();
+
+        if (_this.rendering) {
+            return;
+        }
 
         var evt = window.event || e; // old IE support
         var delta = Math.max(-1, Math.min(1, (evt.wheelDelta || -evt.detail)));
