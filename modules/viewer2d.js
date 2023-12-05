@@ -311,6 +311,9 @@ class Viewer2D {
         }
         if (area >= AREA_DATA) {
             color = '#FFFFFF';
+            if (_this.zAsGray) {
+                color = '#000000';
+            }
 
             rect.x += (_this.ruler.left || 0);
             rect.y += (_this.ruler.top || 0);
